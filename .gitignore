@@ -1,3 +1,10 @@
+# Ingnore data
+
+data/ImageSplits
+data/JPEGImages
+data/MatlabAnnotations
+data/XMLAnnotations
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
