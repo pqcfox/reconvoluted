@@ -1,9 +1,10 @@
 # Ingnore data
 
-data/ImageSplits
-data/JPEGImages
-data/MatlabAnnotations
-data/XMLAnnotations
+data/raw/ImageSplits
+data/raw/JPEGImages
+data/raw/MatlabAnnotations
+data/raw/XMLAnnotations
+data/processed/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
