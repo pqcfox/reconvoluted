@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import os
+import pickle
+import random
 import re
 
 from scipy import misc
 
 IMAGE_SIZE = 48
 GREYSCALE = True
-RELOAD_IMAGES = True
+RELOAD_IMAGES = False
 
 datasets = [
     {
@@ -17,7 +19,7 @@ datasets = [
     },
     {
         'name': 'micro_dataset',
-        'classes': 4,
+        'classes': 5,
         'images_per_class': 5,
         'train_test_same': True,
     },
@@ -52,6 +54,17 @@ def get_label(name):
     return match.group(1)
 
 
+def prune_set(split_set, set_classes):
+    pruned_split_set = ([], [])
+    for image, label in zip(*split_set):
+        if label in set_classes:
+            print(label)
+            pruned_split_set[0].append(image)
+            pruned_split_set[1].append(label)
+    return pruned_split_set
+
+
+
 if RELOAD_IMAGES:
     image_names = os.listdir(image_dir)
     image_arrays, names = [], []
@@ -72,11 +85,11 @@ for split_name in split_names:
     if 'train' in split_name:
         current_set = train_set
     elif 'test' in split_name:
-        curent_set = test_set
+        current_set = test_set
     else:
         continue
     split_path = os.path.join(split_dir, split_name)
-    with open(split_path) as f:
+    with open(split_path, 'r') as f:
         lines = f.read().splitlines()
     for image_name in lines:
         image_path = os.path.join(processed_dir, image_name)
@@ -85,9 +98,23 @@ for split_name in split_names:
         label = get_label(image_name)
         current_set[1].append(label)
 
-print(train_set)
-print(test_set)
-
+all_classes = list(set(train_set[1] + test_set[1]))
+print(all_classes)
 for dataset in datasets:
     print('Forming {}...'.format(dataset['name']))
-    pass
+    if dataset['classes'] is None:
+        classes = all_classes
+    else:
+        classes = random.sample(all_classes, dataset['classes'])
+    print(classes)
+    dataset_train = prune_set(train_set, classes)
+    print(len(dataset_train[0]))
+    if dataset['train_test_same']:
+        dataset_test = tuple(list(l) for l in dataset_train)
+    else:
+        dataset_test = prune_set(test_set, classes)
+    output = (dataset_train, dataset_test)
+    output_name = '{}.pkl'.format(dataset['name'])
+    output_path = os.path.join(datasets_dir, output_name)
+    with open(output_path, 'wb') as f:
+        pickle.dump(output, f)
