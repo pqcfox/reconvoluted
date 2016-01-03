@@ -14,13 +14,13 @@ datasets = [
     {
         'name': 'full_dataset',
         'classes': None,
-        'images_per_class': None,
+        'items_per_class': None,
         'train_test_same': False,
     },
     {
         'name': 'micro_dataset',
         'classes': 5,
-        'images_per_class': 5,
+        'items_per_class': 5,
         'train_test_same': True,
     },
 ]
@@ -54,22 +54,26 @@ def get_label(name):
     return match.group(1)
 
 
-def prune_set(split_set, set_classes):
+def prune_set(split_set, set_classes, items_per_class):
     pruned_split_set = ([], [])
-    for image, label in zip(*split_set):
-        if label in set_classes:
-            print(label)
-            pruned_split_set[0].append(image)
-            pruned_split_set[1].append(label)
+    pairs = list(zip(*split_set))
+    for set_class in set_classes:
+        all_class_pairs = [pair for pair in pairs if pair[1] == set_class]
+        if items_per_class is None:
+            class_pairs = all_class_pairs
+        else:
+            class_pairs = random.sample(all_class_pairs, items_per_class)
+        new_images, new_labels = list(zip(*class_pairs))
+        pruned_split_set[0].extend(new_images)
+        pruned_split_set[1].extend(new_labels)
     return pruned_split_set
-
 
 
 if RELOAD_IMAGES:
     image_names = os.listdir(image_dir)
     image_arrays, names = [], []
+    print('Loading images...')
     for image_name in image_names:
-        print('Processing {}...'.format(image_name))
         input_path = os.path.join(image_dir, image_name)
         output_path = os.path.join(processed_dir, image_name)
         image_array = misc.imread(input_path, flatten=GREYSCALE)
@@ -99,20 +103,17 @@ for split_name in split_names:
         current_set[1].append(label)
 
 all_classes = list(set(train_set[1] + test_set[1]))
-print(all_classes)
 for dataset in datasets:
     print('Forming {}...'.format(dataset['name']))
     if dataset['classes'] is None:
         classes = all_classes
     else:
         classes = random.sample(all_classes, dataset['classes'])
-    print(classes)
-    dataset_train = prune_set(train_set, classes)
-    print(len(dataset_train[0]))
+    dataset_train = prune_set(train_set, classes, dataset['items_per_class'])
     if dataset['train_test_same']:
         dataset_test = tuple(list(l) for l in dataset_train)
     else:
-        dataset_test = prune_set(test_set, classes)
+        dataset_test = prune_set(test_set, classes, dataset['items_per_class'])
     output = (dataset_train, dataset_test)
     output_name = '{}.pkl'.format(dataset['name'])
     output_path = os.path.join(datasets_dir, output_name)
