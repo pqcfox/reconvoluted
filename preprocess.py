@@ -83,15 +83,9 @@ if RELOAD_IMAGES:
         misc.imsave(output_path, square_array)
 
 print('Loading image splits...')
-split_names = os.listdir(split_dir)
 train_set, test_set = ([], []), ([], [])
-for split_name in split_names:
-    if 'train' in split_name:
-        current_set = train_set
-    elif 'test' in split_name:
-        current_set = test_set
-    else:
-        continue
+set_names = {'train.txt': train_set, 'test.txt': test_set}
+for split_name, current_set in set_names.items():
     split_path = os.path.join(split_dir, split_name)
     with open(split_path, 'r') as f:
         lines = f.read().splitlines()
