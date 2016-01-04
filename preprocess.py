@@ -8,8 +8,7 @@ import numpy as np
 from scipy import misc
 
 IMAGE_SIZE = 48
-ALL_GREYSCALE = False
-RELOAD_IMAGES = False
+RELOAD_IMAGES = True
 
 datasets = [
     {
@@ -34,34 +33,30 @@ datasets_dir = os.path.join('data', 'datasets')
 
 def naive_square(array, target_size):
     """Scales and crops an array to a centered square"""
-    shorter = min(array.shape[:2])
+    shorter = min(array.shape)
     scale = float(target_size / shorter)
     scaled = misc.imresize(array, scale)
     landscape = (array.shape[0] == shorter)
-    diff = max(scaled.shape[:2]) - min(scaled.shape[:2])
+    diff = max(scaled.shape) - min(scaled.shape)
     if diff == 0:
         return scaled
     margin_one = diff // 2
     margin_two = margin_one if diff % 2 == 0 else margin_one + 1
     if landscape:
-        return scaled[:, margin_one:-margin_two, ...]
+        return scaled[:, margin_one:-margin_two]
     else:
-        return scaled[margin_one:-margin_two, ...]
-
-
-def reshape(array):
-    greyscale = (len(array.shape) == 2)
-    reshaped = array[..., np.newaxis] if greyscale else array
-    return reshaped.transpose(2, 0, 1)
+        return scaled[margin_one:-margin_two, :]
 
 
 def get_label(name):
+    """Retrieves the label from an image filename"""
     label_regex = '(\w+)_\d+.jpg'
     match = re.match(label_regex, name)
     return match.group(1)
 
 
 def prune_set(split_set, set_classes, items_per_class):
+    """Prunes a set of images and labels into a train_set or test_set"""
     pruned_split_set = ([], [])
     pairs = list(zip(*split_set))
     for set_class in set_classes:
@@ -76,6 +71,15 @@ def prune_set(split_set, set_classes, items_per_class):
     return pruned_split_set
 
 
+def convert_set(set_values):
+    """Converts train_set or test_set values into numpy arrays"""
+    image_arrays, labels = set_values
+    extended_image_arrays = [array[np.newaxis, ...] for array in image_arrays]
+    image_array = np.concatenate(extended_image_arrays, axis=0)
+    label_array = np.array(labels)
+    return (image_array, label_array)
+
+
 if RELOAD_IMAGES:
     image_names = os.listdir(image_dir)
     image_arrays, names = [], []
@@ -83,7 +87,7 @@ if RELOAD_IMAGES:
     for image_name in image_names:
         input_path = os.path.join(image_dir, image_name)
         output_path = os.path.join(processed_dir, image_name)
-        image_array = misc.imread(input_path, flatten=ALL_GREYSCALE)
+        image_array = misc.imread(input_path, flatten=True)
         square_array = naive_square(image_array, IMAGE_SIZE)
         image_arrays.append(square_array)
         names.append(image_name)
@@ -98,8 +102,8 @@ for split_name, current_set in set_names.items():
         lines = f.read().splitlines()
     for image_name in lines:
         image_path = os.path.join(processed_dir, image_name)
-        image_array = misc.imread(image_path)
-        reshaped_array = reshape(image_array)
+        image_array = misc.imread(image_path, flatten=True)
+        reshaped_array = image_array[np.newaxis, ...]
         current_set[0].append(reshaped_array)
         label = get_label(image_name)
         current_set[1].append(label)
@@ -116,7 +120,7 @@ for dataset in datasets:
         dataset_test = tuple(list(l) for l in dataset_train)
     else:
         dataset_test = prune_set(test_set, classes, dataset['items_per_class'])
-    output = (dataset_train, dataset_test)
+    output = (convert_set(dataset_train), convert_set(dataset_test))
     output_name = '{}.pkl'.format(dataset['name'])
     output_path = os.path.join(datasets_dir, output_name)
     with open(output_path, 'wb') as f:
