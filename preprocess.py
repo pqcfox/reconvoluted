@@ -6,9 +6,10 @@ import re
 
 import numpy as np
 from scipy import misc
+from keras.utils import np_utils
 
 IMAGE_SIZE = 48
-RELOAD_IMAGES = True
+RELOAD_IMAGES = False
 
 datasets = [
     {
@@ -71,13 +72,16 @@ def prune_set(split_set, set_classes, items_per_class):
     return pruned_split_set
 
 
-def convert_set(set_values):
+def convert_set(set_values, all_labels):
     """Converts train_set or test_set values into numpy arrays"""
     image_arrays, labels = set_values
     extended_image_arrays = [array[np.newaxis, ...] for array in image_arrays]
     image_array = np.concatenate(extended_image_arrays, axis=0)
-    label_array = np.array(labels)
-    return (image_array, label_array)
+    image_array /= 255
+    label_indexes = [all_labels.index(label) for label in labels]
+    label_array = np.array(label_indexes)
+    categorical_array = np_utils.to_categorical(label_array, len(all_labels))
+    return (image_array, categorical_array)
 
 
 if RELOAD_IMAGES:
@@ -120,7 +124,9 @@ for dataset in datasets:
         dataset_test = tuple(list(l) for l in dataset_train)
     else:
         dataset_test = prune_set(test_set, classes, dataset['items_per_class'])
-    output = (convert_set(dataset_train), convert_set(dataset_test))
+    output_train = convert_set(dataset_train, all_classes)
+    output_test = convert_set(dataset_test, all_classes)
+    output = (output_train, output_test)
     output_name = '{}.pkl'.format(dataset['name'])
     output_path = os.path.join(datasets_dir, output_name)
     with open(output_path, 'wb') as f:
