@@ -27,7 +27,7 @@ model.add(Dense(40))
 model.add(Activation('softmax'))
 model.compile(loss='categorical_crossentropy', optimizer=RMSprop())
 
-data_path = os.path.join('data', 'datasets', 'micro_dataset.pkl')
+data_path = os.path.join('data', 'datasets', 'full_dataset.pkl')
 with open(data_path, 'rb') as f:
     train_set, test_set = pickle.load(f)
 

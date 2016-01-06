@@ -11,31 +11,29 @@ class AccuracyLossPlot(Callback):
         self.val_losses = []
         self.val_accs = []
 
-    def on_epoch_begin(self, epoch, logs={}):
-        self.train_losses.append([])
-        self.train_accs.append([])
-
     def on_batch_end(self, epoch, logs={}):
-        self.train_losses[-1].append(logs.get('loss'))
-        self.train_accs[-1].append(logs.get('acc'))
+        self.train_losses.append(logs.get('loss'))
+        self.train_accs.append(logs.get('acc'))
 
     def on_epoch_end(self, epoch, logs={}):
         self.val_losses.append(logs.get('val_loss'))
         self.val_accs.append(logs.get('val_acc'))
 
     @staticmethod
-    def _plot_pair(train, test, label):
-        epochs = len(train)
-        batches_per_epoch = len(train[0])
-        max_t = epochs * batches_per_epoch
-        batch_t = np.arange(max_t)
-        epoch_t = np.arange(0, max_t, batches_per_epoch)
+    def _plot_pair(train, val, label):
+        batches = len(train)
+        batch_t = np.arange(batches)
+        batches_per_epoch = len(train) // len(val)
+        print(batches_per_epoch)
+        epoch_t = np.arange(0, batches, batches_per_epoch)
+        print(batch_t.shape)
+        print(epoch_t.shape)
+        print(np.array(train).shape)
+        print(np.array(val).shape)
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(batch_t, np.array(train), label='Train')
-        print(epoch_t.shape)
-        print(np.array(test).shape)
-        ax.plot(epoch_t, np.array(test), label='Validation')
+        ax.plot(epoch_t, np.array(val), label='Validation')
         ax.set_xlabel('Batch Number')
         ax.set_ylabel(label)
         ax.legend()
@@ -44,6 +42,7 @@ class AccuracyLossPlot(Callback):
     def on_train_end(self, logs={}):
         self._plot_pair(self.train_losses, self.val_losses, 'Loss')
         self._plot_pair(self.train_accs, self.val_accs, 'Accuracy')
+        print(self.train_losses)
 
 
 class FirstWeightPlot(Callback):
